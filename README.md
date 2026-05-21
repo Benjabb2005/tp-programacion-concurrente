@@ -39,7 +39,7 @@ Seguir estos pasos para correr el proyecto:
 ### 1️⃣ Clonar el repositorio
 Abrir una terminal (consola) en la carpeta donde quiera guardar el proyecto y ejecutar el siguiente comando:
 ```bash
-git clone URL_DEL_REPOSITORIO
+git clone https://github.com/Benjabb2005/tp-programacion-concurrente.git
 ```
 *(Esto va a descargar una copia del proyecto en tu computadora)*
 
