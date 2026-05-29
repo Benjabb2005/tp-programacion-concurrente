@@ -6,7 +6,7 @@
 # Trabajo Práctico Integrador: Sistema logístico
 > Proyecto Integrador de sistema de gestión logística para Programación Concurrente UNLa.
 >
-> Equipo desarrollo: Liberatori Gonzalo, Abbatiello Benjamin, Martinez Martina.
+> Equipo desarrollo: Liberatori Gonzalo, Abbatiello Benjamin, Martinez Martina, Juan Francisco Medina.
 
 ## 🚀 Descripción
 El sistema gestión logística desarrollado tiene por objetivo gestionar y sincronizar los hilos productores y consumidores para que, a través de herramientas de manejo de concurrencia, puedan procesar las distintas tareas de forma concurrente.
