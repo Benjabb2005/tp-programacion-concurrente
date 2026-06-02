@@ -1,9 +1,13 @@
 #include <iostream>
-
+#include "Evaluador.h"
 using namespace std;
 
 int main()
 {
-    cout << "Prueba 1" << endl;
+    pruebaCargaMasiva();
+    pruebaEquidad();
+    pruebaSaturacion();
+    pruebaVacuidad();
+
     return 0;
 }
