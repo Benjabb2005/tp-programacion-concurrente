@@ -29,12 +29,14 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
     // esto es para los parametros del producor y luego poder detenerlo
     WaitingQueue waitingQueue;
     bool sistema_activo = true;
+    // parametro consumidor
+    ProcessingQueue processingQueue;
 
     for(int i =0; i < cantidadProductores; i++){  // recorre la cantidad de productores y lo agrega al vector
         productores.emplace_back(productor_operario, std::ref(waitingQueue), std::ref(sistema_activo)); // agrega en el vector el hilo std::thread t1(productor_operario, i, std::ref(waitingQueue), std::ref(sistema_activo))
     }
     for(int i =0; i < cantidadConsumidores; i++){
-        consumidores.emplace_back(consumir_paquete);
+        consumidores.emplace_back(consumir_paquete, std::ref(processingQueue));
     }
     while(contador_global_paquetes_generados < cantidadPaquetes){   // espera a q el productor llegue a la cantidad de paquetes
         this_thread::sleep_for(chrono::milliseconds(10));
