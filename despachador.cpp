@@ -46,6 +46,7 @@ void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue)
         // Inserta paquete
         std::unique_lock<std::mutex> lock(processing_queue.acceso_cola);
 
+        // Si la cinta esta llena(maximo de 5), esperar espacio
         while (processing_queue.cinta_transportadora.size() >= 5) {
             processing_queue.cv_productores.wait(lock);
         }
