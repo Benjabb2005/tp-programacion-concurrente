@@ -22,31 +22,23 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
     cout << "==============================" << endl;
 
     auto inicio = chrono::high_resolution_clock::now(); //guarda cuando empieza
-
+{
     //reseteo el contador
     std::lock_guard<std::mutex> lk(mtx_contador_global);
     contador_global_paquetes_generados = 0;
-
+}
+{
     //reseteo ids
     std::lock_guard<std::mutex> lk(mtx_generador_ids);
     generador_global_ids = 1;
-    
-
+}   
+{
     std::lock_guard<std::mutex> lk(mtx_metricas);
     espera_prioridad_0 = 0;
     espera_prioridad_1 = 0;
     cantidad_prioridad_0 = 0;
     cantidad_prioridad_1 = 0;
-
-    // se crean hilos
-    vector<thread> productores;
-    vector<thread> consumidores;
-    // esto es para los parametros del productor y luego poder detenerlo
-    WaitingQueue waitingQueue;
-    sistema_activo = true;
-    // parametro consumidor
-    ProcessingQueue processingQueue;
-
+}
     if (cantidadPaquetes == 0) {
 
         cout << "No se generaron paquetes." << endl;
@@ -57,6 +49,16 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
         cout << "Tiempo total: " << duracion.count() << " ms" << endl;
         return;
     }
+    // se crean hilos
+    vector<thread> productores;
+    vector<thread> consumidores;
+    // esto es para los parametros del productor y luego poder detenerlo
+    WaitingQueue waitingQueue;
+    sistema_activo = true;
+    // parametro consumidor
+    ProcessingQueue processingQueue;
+
+    
 
     std::thread hiloDespachador(despachador, std::ref(waitingQueue), std::ref(processingQueue));
 
@@ -69,9 +71,12 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
 
     //DETENER SISTEMA CUANDO LA CANTIDAD ES IGUAL A LOS PAQUETES PEDIDOS
     while (true) {
+        {
         //Mutex para leer el contador global
         std::lock_guard<std::mutex> lk(mtx_contador_global);
         if (contador_global_paquetes_generados >= cantidadPaquetes) break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     sistema_activo = false; // una vez llego a la cantidad de paquetes le pongo false para que termine
