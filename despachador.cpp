@@ -3,59 +3,27 @@
 #include <thread>
 #include <chrono>
 #include <mutex>
+#include <atomic>
 
-// Variables globales deifnidas en main
-extern bool sistema_activo;  // bandera para detener el sistema
-extern std::mutex coutMutex; // mutx para proteger la salida de consola
+extern std::atomic<bool> sistema_activo;
+extern std::mutex coutMutex;
 
 void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue) {
-    // Reloj para controlar el mecanismo de anti-starvation
-    auto reloj_starvation = std::chrono::steady_clock::now();
+    while (sistema_activo.load() || !waiting_queue.esta_vacia()) {
+        Paquete p = waiting_queue.extraer_paquete(sistema_activo);
 
-    while (sistema_activo || !waiting_queue.esta_vacia()) {
-        // Extraer paquete
-        Paquete p = waiting_queue.extraer_paquete();
-        // Si la cola esta vacia, espera un poco y reintenta
         if (p.identificador_unico == -1) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
 
-        // Algoritmo de Prioridad: preferir prioridad 1
-        if (p.nivel_de_prioridad == 0) {
-            auto ahora = std::chrono::steady_clock::now();
-            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(ahora - reloj_starvation);
-
-            // Anti-starvation: si pasaron mas de 6000ms, rescatar paquetes de baja prioridad
-            if (elapsed < std::chrono::milliseconds(6000)) {
-                // reinsertar paquete de baja prioridad y continuar
-                waiting_queue.insertar_paquete(p);
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                continue;
-            } else {
-                // Reinicia el reloj cuando se rescata un paquete de baja prioridad
-                reloj_starvation = std::chrono::steady_clock::now();
-            }
-        }
-
-        // Prepara paquete para la cinta
         PaqueteEnProcesamiento paquete_cinta;
         paquete_cinta.datos = p;
         paquete_cinta.hora_ingreso = std::chrono::steady_clock::now();
 
-        // Inserta paquete
         std::unique_lock<std::mutex> lock(processing_queue.acceso_cola);
 
-        // Si la cinta esta llena(maximo de 5), esperar espacio
-        /*while (processing_queue.cinta_transportadora.size() >= 5) {
+        while (processing_queue.cinta_transportadora.size() >= 5) {
             processing_queue.cv_productores.wait(lock);
-        }*/
-        while (processing_queue.cinta_transportadora.size() >= 5 && sistema_activo) {
-            processing_queue.cv_productores.wait(lock);
-        }
-
-        if (processing_queue.cinta_transportadora.size() >= 5 && !sistema_activo) {
-            return;
         }
 
         processing_queue.cinta_transportadora.push(paquete_cinta);
@@ -63,12 +31,11 @@ void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue)
         lock.unlock();
 
         {
-            std::lock_guard<std::mutex> lock(coutMutex);
+            std::lock_guard<std::mutex> lock_cout(coutMutex);
             std::cout << ">> Paquete " << p.identificador_unico
                       << " asignado a cinta (prioridad " << p.nivel_de_prioridad << ")\n";
         }
 
-        // Retardo obligatorio de 420ms entre asignaciones
         std::this_thread::sleep_for(std::chrono::milliseconds(420));
     }
 }
