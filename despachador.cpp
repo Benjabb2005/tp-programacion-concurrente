@@ -5,37 +5,19 @@
 #include <mutex>
 
 // Variables globales deifnidas en main
-extern bool sistema_activo;  // bandera para detener el sistema
+//extern bool sistema_activo;  // bandera para detener el sistema
 extern std::mutex coutMutex; // mutx para proteger la salida de consola
 
-void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue) {
-    // Reloj para controlar el mecanismo de anti-starvation
-    auto reloj_starvation = std::chrono::steady_clock::now();
+void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue, int cantidadPaquetes) {
+    int producciones = 0;
 
-    while (sistema_activo || !waiting_queue.esta_vacia()) {
+    while (producciones < cantidadPaquetes) {
         // Extraer paquete
         Paquete p = waiting_queue.extraer_paquete();
         // Si la cola esta vacia, espera un poco y reintenta
         if (p.identificador_unico == -1) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
-        }
-
-        // Algoritmo de Prioridad: preferir prioridad 1
-        if (p.nivel_de_prioridad == 0) {
-            auto ahora = std::chrono::steady_clock::now();
-            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(ahora - reloj_starvation);
-
-            // Anti-starvation: si pasaron mas de 6000ms, rescatar paquetes de baja prioridad
-            if (elapsed < std::chrono::milliseconds(6000)) {
-                // reinsertar paquete de baja prioridad y continuar
-                waiting_queue.insertar_paquete(p);
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                continue;
-            } else {
-                // Reinicia el reloj cuando se rescata un paquete de baja prioridad
-                reloj_starvation = std::chrono::steady_clock::now();
-            }
         }
 
         // Prepara paquete para la cinta
@@ -50,7 +32,7 @@ void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue)
         /*while (processing_queue.cinta_transportadora.size() >= 5) {
             processing_queue.cv_productores.wait(lock);
         }*/
-        while (processing_queue.cinta_transportadora.size() >= 5 && sistema_activo) {
+        while (processing_queue.cinta_transportadora.size() >= 5) {
             processing_queue.cv_productores.wait(lock);
         }
 
@@ -59,6 +41,7 @@ void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue)
         }
 
         processing_queue.cinta_transportadora.push(paquete_cinta);
+        producciones++;
         processing_queue.cv_consumidores.notify_one();
         lock.unlock();
 
@@ -71,4 +54,12 @@ void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue)
         // Retardo obligatorio de 420ms entre asignaciones
         std::this_thread::sleep_for(std::chrono::milliseconds(420));
     }
+//NOTIFICAR DESPACHO TERMINADO
+{
+    std::unique_lock<std::mutex> lock(processing_queue.acceso_cola);
+        processing_queue.despacho_terminado = true;
+}
+processing_queue.cv_consumidores.notify_all();
+
+    std::cout << "Despachador: " << cantidadPaquetes << " paquetes enviados a la cinta.\n";
 }
