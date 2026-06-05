@@ -16,7 +16,7 @@ void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue,
         Paquete p = waiting_queue.extraer_paquete();
         // Si la cola esta vacia, espera un poco y reintenta
         if (p.identificador_unico == -1) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
 
@@ -24,26 +24,22 @@ void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue,
         PaqueteEnProcesamiento paquete_cinta;
         paquete_cinta.datos = p;
         paquete_cinta.hora_ingreso = std::chrono::steady_clock::now();
-
+        {
         // Inserta paquete
         std::unique_lock<std::mutex> lock(processing_queue.acceso_cola);
 
         // Si la cinta esta llena(maximo de 5), esperar espacio
-        /*while (processing_queue.cinta_transportadora.size() >= 5) {
+        
+        while (processing_queue.cinta_transportadora.size() < 5) {
             processing_queue.cv_productores.wait(lock);
-        }*/
-        while (processing_queue.cinta_transportadora.size() >= 5) {
-            processing_queue.cv_productores.wait(lock);
-        }
-
-        if (processing_queue.cinta_transportadora.size() >= 5 && !sistema_activo) {
-            return;
         }
 
         processing_queue.cinta_transportadora.push(paquete_cinta);
         producciones++;
         processing_queue.cv_consumidores.notify_one();
-        lock.unlock();
+        }
+        // Retardo obligatorio entre asignaciones
+        std::this_thread::sleep_for(std::chrono::milliseconds(420));
 
         {
             std::lock_guard<std::mutex> lock(coutMutex);
