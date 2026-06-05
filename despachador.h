@@ -5,6 +5,6 @@
 #include "WaitingQueue.h"
 #include "ProcessingQueue.h"
 
-void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue);
+void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue, int cantidadPaquetes);
 
 #endif // DESPACHADOR_H_INCLUDED
