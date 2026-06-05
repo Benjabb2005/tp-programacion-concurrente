@@ -34,6 +34,11 @@
 		</Compiler>
 		<Unit filename="Evaluador.cpp" />
 		<Unit filename="Evaluador.h" />
+		<Unit filename="Paquete.h" />
+		<Unit filename="ProcessingQueue.cpp" />
+		<Unit filename="ProcessingQueue.h" />
+		<Unit filename="WaitingQueue.cpp" />
+		<Unit filename="WaitingQueue.h" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<lib_finder disable_auto="1" />
