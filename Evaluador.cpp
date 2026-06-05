@@ -5,9 +5,13 @@
 #include <chrono>
 #include <functional>
 #include "WaitingQueue.h"
+#include "ProcessingQueue.h"
+#include "Despachador.h"
+#include <mutex>
 
 using namespace std;
 bool sistema_activo = true;
+std::mutex coutMutex;
 
 void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidadConsumidores, int cantidadPaquetes, int modo_prueba){
     cout << "\n==============================" << endl;
@@ -24,6 +28,18 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
     contador_global_paquetes_generados = 0;
     mtx_contador_global.unlock();
 
+    //reseteo ids
+    mtx_generador_ids.lock();
+    generador_global_ids = 1;
+    mtx_generador_ids.unlock();
+
+    mtx_metricas.lock();
+    espera_prioridad_0 = 0;
+    espera_prioridad_1 = 0;
+    cantidad_prioridad_0 = 0;
+    cantidad_prioridad_1 = 0;
+    mtx_metricas.unlock();
+
     // se crean hilos
     vector<thread> productores;
     vector<thread> consumidores;
@@ -32,6 +48,20 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
     sistema_activo = true;
     // parametro consumidor
     ProcessingQueue processingQueue;
+
+    if (cantidadPaquetes == 0) {
+        sistema_activo = false;
+
+        cout << "No se generaron paquetes." << endl;
+
+        auto fin = chrono::high_resolution_clock::now();
+        auto duracion = chrono::duration_cast<chrono::milliseconds>(fin - inicio);
+
+        cout << "Tiempo total: " << duracion.count() << " ms" << endl;
+        return;
+    }
+
+    std::thread hiloDespachador(despachador, std::ref(waitingQueue), std::ref(processingQueue));
 
     for(int i =0; i < cantidadProductores; i++){  // recorre la cantidad de productores y lo agrega al vector
         productores.emplace_back(productor_operario, std::ref(waitingQueue), std::ref(sistema_activo), modo_prueba); // agrega en el vector el hilo std::thread t1(productor_operario, i, std::ref(waitingQueue), std::ref(sistema_activo))
@@ -43,52 +73,79 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
         this_thread::sleep_for(chrono::milliseconds(10));
     }
 
-    std::thread hiloDespachador(despachador, std::ref(waitingQueue), std::ref(processingQueue));
+
 
     sistema_activo = false; // una vez llego a la cantidad de paquetes le pongo false para que termine
-    processingQueue.cv_consumidores.notify_all();
-    processingQueue.cv_productores.notify_all();
+
 
     for(auto& t: productores){  //recorre el vector y hace el join de cada uno
         t.join();
     }
+
+    processingQueue.cv_consumidores.notify_all();
+    processingQueue.cv_productores.notify_all();
+
+    hiloDespachador.join();
+
+    processingQueue.cv_consumidores.notify_all();
+    processingQueue.cv_productores.notify_all();
+
     for(auto& t: consumidores){
         t.join();
     }
 
-    hiloDespachador.join();
+
+
 
     auto fin = chrono::high_resolution_clock::now(); // guarda cuando termina
 
     auto duracion = chrono::duration_cast<chrono::milliseconds>(fin - inicio); // guarda su duracion
+
+    cout << "Total paquetes producidos: " << contador_global_paquetes_generados << endl;
+
+    if(cantidad_prioridad_0 > 0){
+        cout << "Promedio espera prioridad 0: "
+             << espera_prioridad_0 / cantidad_prioridad_0
+             << " ms" << endl;
+    } else {
+        cout << "Promedio espera prioridad 0: sin paquetes" << endl;
+    }
+
+    if(cantidad_prioridad_1 > 0){
+        cout << "Promedio espera prioridad 1: "
+             << espera_prioridad_1 / cantidad_prioridad_1
+             << " ms" << endl;
+    } else {
+        cout << "Promedio espera prioridad 1: sin paquetes" << endl;
+    }
 
     cout << "Tiempo total: " << duracion.count() << " ms" << endl;
 };
 
 //
 void pruebaCargaMasiva(){
-    ejecutarEscenario("Carga masiva A", 1, 2, 1550);
-    ejecutarEscenario("Carga masiva B", 3, 1, 1550);
-    ejecutarEscenario("Carga masiva C", 3, 3, 1550);
+    ejecutarEscenario("Carga masiva A", 1, 2, 1550, 0);
+    ejecutarEscenario("Carga masiva B", 3, 1, 1550, 0);
+    ejecutarEscenario("Carga masiva C", 3, 3, 1550, 0);
 };
 
 //
 void pruebaVacuidad(){
-    ejecutarEscenario("Vacuidad A", 1, 2, 0);
-    ejecutarEscenario("Vacuidad B", 3, 1, 0);
-    ejecutarEscenario("Vacuidad C", 3, 3, 0);
+    ejecutarEscenario("Vacuidad A", 1, 2, 0, 0);
+    ejecutarEscenario("Vacuidad B", 3, 1, 0, 0);
+    ejecutarEscenario("Vacuidad C", 3, 3, 0, 0);
 };
 
 //
 void pruebaSaturacion(){
-    ejecutarEscenario("Saturacion A", 1, 2, 8);
-    ejecutarEscenario("Saturacion B", 3, 1, 8);
-    ejecutarEscenario("Saturacion C", 3, 3, 8);
+    ejecutarEscenario("Saturacion A", 1, 2, 8, 1);
+    ejecutarEscenario("Saturacion B", 3, 1, 8, 1);
+    ejecutarEscenario("Saturacion C", 3, 3, 8, 1);
 };
 
 //
 void pruebaEquidad(){
-    ejecutarEscenario("Equidad A", 1, 2, 1);
-    ejecutarEscenario("Equidad B", 3, 1, 1);
-    ejecutarEscenario("Equidad C", 3, 3, 1);
+    ejecutarEscenario("Equidad A", 1, 2, 80, 3);
+    ejecutarEscenario("Equidad B", 3, 1, 200, 3);
+    ejecutarEscenario("Equidad C", 3, 3, 200, 3);
 };

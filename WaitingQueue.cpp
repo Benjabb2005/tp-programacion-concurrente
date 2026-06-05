@@ -17,7 +17,7 @@ void WaitingQueue::insertar_paquete(const Paquete& p) {
     } else {
         estanteria_baja.push(p);
     }
-    
+
     mtx.unlock();
 }
 
@@ -29,30 +29,30 @@ Paquete WaitingQueue::extraer_paquete() {
 
     bool forzar_baja_por_starvation = false;
 
-    
+
     if (!estanteria_baja.empty()) {
         auto ahora = std::chrono::steady_clock::now(); //Tiempo actual
         // Calculamos la diferencia en milisegundos entre ahora y cuando se creó la caja
         auto tiempo_esperando = std::chrono::duration_cast<std::chrono::milliseconds>(ahora - estanteria_baja.front().fecha_de_creacion).count();
-        
+
         // Si lleva esperando 6000ms o más, activamos el booleano para que sea prioridad
         if (tiempo_esperando >= 6000) {
-            forzar_baja_por_starvation = true; 
+            forzar_baja_por_starvation = true;
         }
     }
     //Si se tuvo que activar sale primero el de baja
     if (forzar_baja_por_starvation) {
-        p = estanteria_baja.front(); 
+        p = estanteria_baja.front();
         estanteria_baja.pop();
-    } 
+    }
     // Si no se activo sigue normal priorizando alta
     else if (!estanteria_alta.empty()) {
-        p = estanteria_alta.front(); 
+        p = estanteria_alta.front();
         estanteria_alta.pop();
-    } 
+    }
     // Y si no hay alta vamos con la baja
     else if (!estanteria_baja.empty()) {
-        p = estanteria_baja.front(); 
+        p = estanteria_baja.front();
         estanteria_baja.pop();
     }
 
@@ -84,6 +84,12 @@ void productor_operario(WaitingQueue& waiting_queue, bool& sistema_activo, int m
             p.nivel_de_prioridad = 1; // Forzar Alta
         } else if (modo_prueba == 2) {
             p.nivel_de_prioridad = 0; // Forzar Baja
+        } else if (modo_prueba == 3) {
+            if(p.identificador_unico == 1) { // Prueba equidad
+                p.nivel_de_prioridad = 0;
+            } else{
+                p.nivel_de_prioridad = 1;
+            }
         }
 
         p.fecha_de_creacion = std::chrono::steady_clock::now();

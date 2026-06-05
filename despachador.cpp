@@ -12,7 +12,7 @@ void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue)
     // Reloj para controlar el mecanismo de anti-starvation
     auto reloj_starvation = std::chrono::steady_clock::now();
 
-    while (sistema_activo) {
+    while (sistema_activo || !waiting_queue.esta_vacia()) {
         // Extraer paquete
         Paquete p = waiting_queue.extraer_paquete();
         // Si la cola esta vacia, espera un poco y reintenta
@@ -47,8 +47,15 @@ void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue)
         std::unique_lock<std::mutex> lock(processing_queue.acceso_cola);
 
         // Si la cinta esta llena(maximo de 5), esperar espacio
-        while (processing_queue.cinta_transportadora.size() >= 5) {
+        /*while (processing_queue.cinta_transportadora.size() >= 5) {
             processing_queue.cv_productores.wait(lock);
+        }*/
+        while (processing_queue.cinta_transportadora.size() >= 5 && sistema_activo) {
+            processing_queue.cv_productores.wait(lock);
+        }
+
+        if (processing_queue.cinta_transportadora.size() >= 5 && !sistema_activo) {
+            return;
         }
 
         processing_queue.cinta_transportadora.push(paquete_cinta);

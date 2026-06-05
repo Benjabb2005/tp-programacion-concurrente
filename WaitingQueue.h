@@ -8,6 +8,9 @@
 extern int contador_global_paquetes_generados;
 extern std::mutex mtx_contador_global;
 
+extern int generador_global_ids;
+extern std::mutex mtx_generador_ids;
+
 struct WaitingQueue {
     // Variables internas
     std::queue<Paquete> estanteria_alta;

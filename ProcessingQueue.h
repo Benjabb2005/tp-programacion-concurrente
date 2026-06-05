@@ -5,6 +5,13 @@
 #include <condition_variable>
 #include "Paquete.h"
 
+extern long long espera_prioridad_0;
+extern long long espera_prioridad_1;
+
+extern int cantidad_prioridad_0;
+extern int cantidad_prioridad_1;
+extern std::mutex mtx_metricas;
+
 //Para identificar cuando el paquete llegó a la cinta transportadora se pasa con un nuevo struct (esto sirve para calcular el tiempo en la cinta)
 struct PaqueteEnProcesamiento{
     Paquete datos;

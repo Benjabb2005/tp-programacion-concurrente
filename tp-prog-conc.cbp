@@ -39,6 +39,8 @@
 		<Unit filename="ProcessingQueue.h" />
 		<Unit filename="WaitingQueue.cpp" />
 		<Unit filename="WaitingQueue.h" />
+		<Unit filename="despachador.cpp" />
+		<Unit filename="despachador.h" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<lib_finder disable_auto="1" />

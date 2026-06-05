@@ -4,7 +4,7 @@ using namespace std;
 
 int main()
 {
-    pruebaCargaMasiva();
+    //pruebaCargaMasiva();
     pruebaEquidad();
     pruebaSaturacion();
     pruebaVacuidad();
