@@ -18,6 +18,5 @@ struct ProcessingQueue{
 };
 
 void consumir_paquete(ProcessingQueue &cola);
-//funcion de productores con prioridades
 
 #endif // PROCESSINGQUEUE_H_INCLUDED
