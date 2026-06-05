@@ -24,33 +24,30 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
     auto inicio = chrono::high_resolution_clock::now(); //guarda cuando empieza
 
     //reseteo el contador
-    mtx_contador_global.lock();
+    std::lock_guard<std::mutex> lk(mtx_contador_global);
     contador_global_paquetes_generados = 0;
-    mtx_contador_global.unlock();
 
     //reseteo ids
-    mtx_generador_ids.lock();
+    std::lock_guard<std::mutex> lk(mtx_generador_ids);
     generador_global_ids = 1;
-    mtx_generador_ids.unlock();
+    
 
-    mtx_metricas.lock();
+    std::lock_guard<std::mutex> lk(mtx_metricas);
     espera_prioridad_0 = 0;
     espera_prioridad_1 = 0;
     cantidad_prioridad_0 = 0;
     cantidad_prioridad_1 = 0;
-    mtx_metricas.unlock();
 
     // se crean hilos
     vector<thread> productores;
     vector<thread> consumidores;
-    // esto es para los parametros del producor y luego poder detenerlo
+    // esto es para los parametros del productor y luego poder detenerlo
     WaitingQueue waitingQueue;
     sistema_activo = true;
     // parametro consumidor
     ProcessingQueue processingQueue;
 
     if (cantidadPaquetes == 0) {
-        sistema_activo = false;
 
         cout << "No se generaron paquetes." << endl;
 
@@ -69,11 +66,13 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
     for(int i =0; i < cantidadConsumidores; i++){
         consumidores.emplace_back(consumir_paquete, std::ref(processingQueue));
     }
-    while(contador_global_paquetes_generados < cantidadPaquetes){   // espera a q el productor llegue a la cantidad de paquetes
-        this_thread::sleep_for(chrono::milliseconds(10));
+
+    //DETENER SISTEMA CUANDO LA CANTIDAD ES IGUAL A LOS PAQUETES PEDIDOS
+    while (true) {
+        //Mutex para leer el contador global
+        std::lock_guard<std::mutex> lk(mtx_contador_global);
+        if (contador_global_paquetes_generados >= cantidadPaquetes) break;
     }
-
-
 
     sistema_activo = false; // una vez llego a la cantidad de paquetes le pongo false para que termine
 
@@ -82,19 +81,11 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
         t.join();
     }
 
-    processingQueue.cv_consumidores.notify_all();
-    processingQueue.cv_productores.notify_all();
-
     hiloDespachador.join();
-
-    processingQueue.cv_consumidores.notify_all();
-    processingQueue.cv_productores.notify_all();
 
     for(auto& t: consumidores){
         t.join();
     }
-
-
 
 
     auto fin = chrono::high_resolution_clock::now(); // guarda cuando termina
