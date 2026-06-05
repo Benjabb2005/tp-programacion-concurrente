@@ -10,22 +10,20 @@ int generador_global_ids = 1;
 std::mutex mtx_generador_ids;
 
 void WaitingQueue::insertar_paquete(const Paquete& p) {
-    mtx.lock();
+    std::lock_guard<std::mutex> lock(mtx);
     // Guardamos el paquete en la cola correspondiente a su prioridad
     if (p.nivel_de_prioridad == 1) {
         estanteria_alta.push(p);
     } else {
         estanteria_baja.push(p);
     }
-
-    mtx.unlock();
 }
 
 Paquete WaitingQueue::extraer_paquete() {
     //Creamos paquete vacio por default
     Paquete p = {-1, -1, std::chrono::steady_clock::now()};
 
-    mtx.lock();
+    std::lock_guard<std::mutex> lock(mtx);
 
     bool forzar_baja_por_starvation = false;
 
@@ -95,7 +93,10 @@ void productor_operario(WaitingQueue& waiting_queue, bool& sistema_activo, int m
         p.fecha_de_creacion = std::chrono::steady_clock::now();
 
         std::this_thread::sleep_for(std::chrono::milliseconds(90));
-
+        
+        //Verifica si el sistema esta activo antes de insertar el paquete
+        if (!sistema_activo) break;
+        
         waiting_queue.insertar_paquete(p);
 
         mtx_contador_global.lock();
