@@ -32,6 +32,8 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="Evaluador.cpp" />
+		<Unit filename="Evaluador.h" />
 		<Unit filename="Paquete.h" />
 		<Unit filename="ProcessingQueue.cpp" />
 		<Unit filename="ProcessingQueue.h" />
