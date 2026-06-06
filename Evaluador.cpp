@@ -13,6 +13,8 @@ using namespace std;
 bool sistema_activo = true;
 std::mutex coutMutex;
 
+std::mutex sistemaMtx;
+
 void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidadConsumidores, int cantidadPaquetes, int modo_prueba){
     cout << "\n==============================" << endl;
     cout << "Escenario: " << nombre << endl;
@@ -22,35 +24,24 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
     cout << "==============================" << endl;
 
     auto inicio = chrono::high_resolution_clock::now(); //guarda cuando empieza
-
+{
     //reseteo el contador
-    mtx_contador_global.lock();
+    std::lock_guard<std::mutex> lk(mtx_contador_global);
     contador_global_paquetes_generados = 0;
-    mtx_contador_global.unlock();
-
+}
+{
     //reseteo ids
-    mtx_generador_ids.lock();
+    std::lock_guard<std::mutex> lk(mtx_generador_ids);
     generador_global_ids = 1;
-    mtx_generador_ids.unlock();
-
-    mtx_metricas.lock();
+}
+{
+    std::lock_guard<std::mutex> lk(mtx_metricas);
     espera_prioridad_0 = 0;
     espera_prioridad_1 = 0;
     cantidad_prioridad_0 = 0;
     cantidad_prioridad_1 = 0;
-    mtx_metricas.unlock();
-
-    // se crean hilos
-    vector<thread> productores;
-    vector<thread> consumidores;
-    // esto es para los parametros del producor y luego poder detenerlo
-    WaitingQueue waitingQueue;
-    sistema_activo = true;
-    // parametro consumidor
-    ProcessingQueue processingQueue;
-
+}
     if (cantidadPaquetes == 0) {
-        sistema_activo = false;
 
         cout << "No se generaron paquetes." << endl;
 
@@ -60,41 +51,51 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
         cout << "Tiempo total: " << duracion.count() << " ms" << endl;
         return;
     }
+    // se crean hilos
+    vector<thread> productores;
+    vector<thread> consumidores;
+    // esto es para los parametros del productor y luego poder detenerlo
+    WaitingQueue waitingQueue;
+    sistemaMtx.lock();
+    sistema_activo = true;
+    sistemaMtx.unlock();
+    // parametro consumidor
+    ProcessingQueue processingQueue;
 
-    std::thread hiloDespachador(despachador, std::ref(waitingQueue), std::ref(processingQueue));
+
+
+    std::thread hiloDespachador(despachador, std::ref(waitingQueue), std::ref(processingQueue), cantidadPaquetes);
 
     for(int i =0; i < cantidadProductores; i++){  // recorre la cantidad de productores y lo agrega al vector
-        productores.emplace_back(productor_operario, std::ref(waitingQueue), std::ref(sistema_activo), modo_prueba); // agrega en el vector el hilo std::thread t1(productor_operario, i, std::ref(waitingQueue), std::ref(sistema_activo))
+        productores.emplace_back(productor_operario, std::ref(waitingQueue), std::ref(sistema_activo), modo_prueba, cantidadPaquetes); // agrega en el vector el hilo std::thread t1(productor_operario, i, std::ref(waitingQueue), std::ref(sistema_activo))
     }
     for(int i =0; i < cantidadConsumidores; i++){
         consumidores.emplace_back(consumir_paquete, std::ref(processingQueue));
     }
-    while(contador_global_paquetes_generados < cantidadPaquetes){   // espera a q el productor llegue a la cantidad de paquetes
-        this_thread::sleep_for(chrono::milliseconds(10));
+
+    //DETENER SISTEMA CUANDO LA CANTIDAD ES IGUAL A LOS PAQUETES PEDIDOS
+    while (true) {
+        {
+        //Mutex para leer el contador global
+        std::lock_guard<std::mutex> lk(mtx_contador_global);
+        if (contador_global_paquetes_generados >= cantidadPaquetes) break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-
-
+    sistemaMtx.lock();
     sistema_activo = false; // una vez llego a la cantidad de paquetes le pongo false para que termine
-
+    sistemaMtx.unlock();
 
     for(auto& t: productores){  //recorre el vector y hace el join de cada uno
         t.join();
     }
 
-    processingQueue.cv_consumidores.notify_all();
-    processingQueue.cv_productores.notify_all();
-
     hiloDespachador.join();
-
-    processingQueue.cv_consumidores.notify_all();
-    processingQueue.cv_productores.notify_all();
 
     for(auto& t: consumidores){
         t.join();
     }
-
-
 
 
     auto fin = chrono::high_resolution_clock::now(); // guarda cuando termina
@@ -145,7 +146,7 @@ void pruebaSaturacion(){
 
 //
 void pruebaEquidad(){
-    ejecutarEscenario("Equidad A", 1, 2, 80, 3);
-    ejecutarEscenario("Equidad B", 3, 1, 200, 3);
-    ejecutarEscenario("Equidad C", 3, 3, 200, 3);
+    ejecutarEscenario("Equidad A", 1, 2, 20, 3);
+    ejecutarEscenario("Equidad B", 3, 1, 20, 3);
+    ejecutarEscenario("Equidad C", 3, 3, 20, 3);
 };

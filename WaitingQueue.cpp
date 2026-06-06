@@ -9,28 +9,28 @@ std::mutex mtx_contador_global;
 int generador_global_ids = 1;
 std::mutex mtx_generador_ids;
 
+//std::mutex sistemaMtx;
+
 void WaitingQueue::insertar_paquete(const Paquete& p) {
-    mtx.lock();
+    std::lock_guard<std::mutex> lock(mtx);
     // Guardamos el paquete en la cola correspondiente a su prioridad
     if (p.nivel_de_prioridad == 1) {
         estanteria_alta.push(p);
     } else {
         estanteria_baja.push(p);
     }
-
-    mtx.unlock();
 }
 
 Paquete WaitingQueue::extraer_paquete() {
     //Creamos paquete vacio por default
     Paquete p = {-1, -1, std::chrono::steady_clock::now()};
 
-    mtx.lock();
+    std::lock_guard<std::mutex> lock(mtx);
 
     bool forzar_baja_por_starvation = false;
 
 
-    if (!estanteria_baja.empty()) {
+    if (!estanteria_baja.empty() && !ultima_extraccion_fue_baja_forzada) {
         auto ahora = std::chrono::steady_clock::now(); //Tiempo actual
         // Calculamos la diferencia en milisegundos entre ahora y cuando se creó la caja
         auto tiempo_esperando = std::chrono::duration_cast<std::chrono::milliseconds>(ahora - estanteria_baja.front().fecha_de_creacion).count();
@@ -44,19 +44,22 @@ Paquete WaitingQueue::extraer_paquete() {
     if (forzar_baja_por_starvation) {
         p = estanteria_baja.front();
         estanteria_baja.pop();
+        ultima_extraccion_fue_baja_forzada = true;
     }
     // Si no se activo sigue normal priorizando alta
     else if (!estanteria_alta.empty()) {
         p = estanteria_alta.front();
         estanteria_alta.pop();
+        ultima_extraccion_fue_baja_forzada = false;
     }
     // Y si no hay alta vamos con la baja
     else if (!estanteria_baja.empty()) {
         p = estanteria_baja.front();
         estanteria_baja.pop();
+        ultima_extraccion_fue_baja_forzada = false;
     }
 
-    mtx.unlock();
+
 
 
     return p;
@@ -68,14 +71,34 @@ bool WaitingQueue::esta_vacia() {
     return vacia;
 }
 
-void productor_operario(WaitingQueue& waiting_queue, bool& sistema_activo, int modo_prueba) {
-    while (sistema_activo) { //Si esta activo
-        Paquete p;//creamos el paquete
+void productor_operario(WaitingQueue& waiting_queue, bool& sistema_activo, int modo_prueba, int cantidadPaquetes) {
+
+    while (true) { //Si esta activo
+        //verifico sistema activo
+        sistemaMtx.lock();
+        bool activo = sistema_activo;
+        sistemaMtx.unlock();
+
+        if (!activo) break;
+
+
+        mtx_contador_global.lock();
+        if(contador_global_paquetes_generados >= cantidadPaquetes){
+            mtx_contador_global.unlock();
+            break;
+        }
+        contador_global_paquetes_generados++;
 
         mtx_generador_ids.lock();
-        p.identificador_unico = generador_global_ids; //le asigna el identificador
+        int idAsignado = generador_global_ids;
         generador_global_ids++; // y suma 1 para el proximo paquete
         mtx_generador_ids.unlock();
+        mtx_contador_global.unlock();
+
+
+        Paquete p;//creamos el paquete
+        p.identificador_unico = idAsignado; //le asigna el identificador
+
 
         //Control segun el test a probar
         if (modo_prueba == 0) {
@@ -85,7 +108,7 @@ void productor_operario(WaitingQueue& waiting_queue, bool& sistema_activo, int m
         } else if (modo_prueba == 2) {
             p.nivel_de_prioridad = 0; // Forzar Baja
         } else if (modo_prueba == 3) {
-            if(p.identificador_unico == 1) { // Prueba equidad
+            if(p.identificador_unico == 3) { // Prueba equidad
                 p.nivel_de_prioridad = 0;
             } else{
                 p.nivel_de_prioridad = 1;
@@ -96,10 +119,23 @@ void productor_operario(WaitingQueue& waiting_queue, bool& sistema_activo, int m
 
         std::this_thread::sleep_for(std::chrono::milliseconds(90));
 
+        //Verifica si el sistema esta activo antes de insertar el paquete
+        /*sistemaMtx.lock();
+        activo = sistema_activo;
+        sistemaMtx.unlock();
+        if (!activo) break;*/
+
+        /*mtx_contador_global.lock();
+        if(contador_global_paquetes_generados >= cantidadPaquetes){
+            mtx_contador_global.unlock();
+            break;
+        }
+        contador_global_paquetes_generados++;
+        mtx_contador_global.unlock();*/
+
         waiting_queue.insertar_paquete(p);
 
-        mtx_contador_global.lock();
-        contador_global_paquetes_generados++;
-        mtx_contador_global.unlock();
+
     }
+
 }

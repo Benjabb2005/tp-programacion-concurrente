@@ -11,6 +11,8 @@ extern std::mutex mtx_contador_global;
 extern int generador_global_ids;
 extern std::mutex mtx_generador_ids;
 
+extern std::mutex sistemaMtx;
+
 struct WaitingQueue {
     // Variables internas
     std::queue<Paquete> estanteria_alta;
@@ -24,10 +26,11 @@ struct WaitingQueue {
     void insertar_paquete(const Paquete& p);
     Paquete extraer_paquete();
     bool esta_vacia(); //V o F si esta vacia
+    bool ultima_extraccion_fue_baja_forzada = false;
 };
 
 // Función que ejecuta cada hilo
-void productor_operario(WaitingQueue& waiting_queue, bool& sistema_activo, int modo_prueba);
+void productor_operario(WaitingQueue& waiting_queue, bool& sistema_activo, int modo_prueba, int cantidadPaquetes);
 
 
 #endif // WAITINGQUEUE_H_INCLUDED
