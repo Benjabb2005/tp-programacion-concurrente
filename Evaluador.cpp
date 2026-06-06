@@ -13,6 +13,8 @@ using namespace std;
 bool sistema_activo = true;
 std::mutex coutMutex;
 
+std::mutex sistemaMtx;
+
 void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidadConsumidores, int cantidadPaquetes, int modo_prueba){
     cout << "\n==============================" << endl;
     cout << "Escenario: " << nombre << endl;
@@ -31,7 +33,7 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
     //reseteo ids
     std::lock_guard<std::mutex> lk(mtx_generador_ids);
     generador_global_ids = 1;
-}   
+}
 {
     std::lock_guard<std::mutex> lk(mtx_metricas);
     espera_prioridad_0 = 0;
@@ -54,16 +56,18 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
     vector<thread> consumidores;
     // esto es para los parametros del productor y luego poder detenerlo
     WaitingQueue waitingQueue;
+    sistemaMtx.lock();
     sistema_activo = true;
+    sistemaMtx.unlock();
     // parametro consumidor
     ProcessingQueue processingQueue;
 
-    
 
-    std::thread hiloDespachador(despachador, std::ref(waitingQueue), std::ref(processingQueue));
+
+    std::thread hiloDespachador(despachador, std::ref(waitingQueue), std::ref(processingQueue), cantidadPaquetes);
 
     for(int i =0; i < cantidadProductores; i++){  // recorre la cantidad de productores y lo agrega al vector
-        productores.emplace_back(productor_operario, std::ref(waitingQueue), std::ref(sistema_activo), modo_prueba); // agrega en el vector el hilo std::thread t1(productor_operario, i, std::ref(waitingQueue), std::ref(sistema_activo))
+        productores.emplace_back(productor_operario, std::ref(waitingQueue), std::ref(sistema_activo), modo_prueba, cantidadPaquetes); // agrega en el vector el hilo std::thread t1(productor_operario, i, std::ref(waitingQueue), std::ref(sistema_activo))
     }
     for(int i =0; i < cantidadConsumidores; i++){
         consumidores.emplace_back(consumir_paquete, std::ref(processingQueue));
@@ -79,8 +83,9 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
+    sistemaMtx.lock();
     sistema_activo = false; // una vez llego a la cantidad de paquetes le pongo false para que termine
-
+    sistemaMtx.unlock();
 
     for(auto& t: productores){  //recorre el vector y hace el join de cada uno
         t.join();
@@ -141,7 +146,7 @@ void pruebaSaturacion(){
 
 //
 void pruebaEquidad(){
-    ejecutarEscenario("Equidad A", 1, 2, 80, 3);
-    ejecutarEscenario("Equidad B", 3, 1, 200, 3);
-    ejecutarEscenario("Equidad C", 3, 3, 200, 3);
+    ejecutarEscenario("Equidad A", 1, 2, 20, 3);
+    ejecutarEscenario("Equidad B", 3, 1, 20, 3);
+    ejecutarEscenario("Equidad C", 3, 3, 20, 3);
 };

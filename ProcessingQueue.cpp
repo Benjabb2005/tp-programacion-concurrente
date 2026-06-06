@@ -2,8 +2,10 @@
 #include <chrono>
 #include <thread>
 #include <iostream>
+#include <mutex>
 
 int consumos = 0;
+std::mutex consumoMtx;
 extern std::mutex coutMutex;
 
 long long espera_prioridad_0 = 0;
@@ -54,7 +56,9 @@ std::mutex mtx_metricas;
     std::lock_guard<std::mutex> lock2(coutMutex);
     std::cout << "Paquete " << paquete.datos.identificador_unico << " procesado pasados " << tiempo_pasado.count() << " ms en la cinta." << std::endl;
      }
+     consumoMtx.lock();
      consumos++;
+     consumoMtx.unlock();
     //AVISA QUE HAY LUGAR EN LA COLA
     cola.cv_productores.notify_one();
     lock.unlock();

@@ -29,8 +29,8 @@ void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue,
         std::unique_lock<std::mutex> lock(processing_queue.acceso_cola);
 
         // Si la cinta esta llena(maximo de 5), esperar espacio
-        
-        while (processing_queue.cinta_transportadora.size() < 5) {
+
+        while (processing_queue.cinta_transportadora.size() >= 5) {
             processing_queue.cv_productores.wait(lock);
         }
 
@@ -48,7 +48,7 @@ void despachador(WaitingQueue& waiting_queue, ProcessingQueue& processing_queue,
         }
 
         // Retardo obligatorio de 420ms entre asignaciones
-        std::this_thread::sleep_for(std::chrono::milliseconds(420));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(420));
     }
 //NOTIFICAR DESPACHO TERMINADO
 {
