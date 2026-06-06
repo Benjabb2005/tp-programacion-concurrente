@@ -54,3 +54,58 @@
 	<thread>
 	<iostream>
 
+1780713549 source:c:\users\gonzalo\tp-programacion-concurrente\despachador.cpp
+	"Despachador.h"
+	<iostream>
+	<thread>
+	<chrono>
+	<mutex>
+
+1780711694 c:\users\gonzalo\tp-programacion-concurrente\despachador.h
+	"WaitingQueue.h"
+	"ProcessingQueue.h"
+
+1780712504 c:\users\gonzalo\tp-programacion-concurrente\waitingqueue.h
+	<queue>
+	<mutex>
+	"Paquete.h"
+
+1780426309 c:\users\gonzalo\tp-programacion-concurrente\paquete.h
+	<chrono>
+
+1780711694 c:\users\gonzalo\tp-programacion-concurrente\processingqueue.h
+	<queue>
+	<mutex>
+	<condition_variable>
+	"Paquete.h"
+
+1780712934 source:c:\users\gonzalo\tp-programacion-concurrente\evaluador.cpp
+	"Evaluador.h"
+	<iostream>
+	<thread>
+	<vector>
+	<chrono>
+	<functional>
+	"WaitingQueue.h"
+	"ProcessingQueue.h"
+	"Despachador.h"
+	<mutex>
+
+1780711694 c:\users\gonzalo\tp-programacion-concurrente\evaluador.h
+
+1780711694 source:c:\users\gonzalo\tp-programacion-concurrente\main.cpp
+	<iostream>
+	"Evaluador.h"
+
+1780713549 source:c:\users\gonzalo\tp-programacion-concurrente\processingqueue.cpp
+	"ProcessingQueue.h"
+	<chrono>
+	<thread>
+	<iostream>
+
+1780713214 source:c:\users\gonzalo\tp-programacion-concurrente\waitingqueue.cpp
+	"WaitingQueue.h"
+	<thread>
+	<chrono>
+	<cstdlib>
+

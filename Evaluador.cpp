@@ -31,7 +31,7 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
     //reseteo ids
     std::lock_guard<std::mutex> lk(mtx_generador_ids);
     generador_global_ids = 1;
-}   
+}
 {
     std::lock_guard<std::mutex> lk(mtx_metricas);
     espera_prioridad_0 = 0;
@@ -58,12 +58,13 @@ void ejecutarEscenario(const char* nombre, int cantidadProductores, int cantidad
     // parametro consumidor
     ProcessingQueue processingQueue;
 
-    
 
-    std::thread hiloDespachador(despachador, std::ref(waitingQueue), std::ref(processingQueue));
+
+
+    std::thread hiloDespachador(despachador, std::ref(waitingQueue), std::ref(processingQueue), cantidadPaquetes);
 
     for(int i =0; i < cantidadProductores; i++){  // recorre la cantidad de productores y lo agrega al vector
-        productores.emplace_back(productor_operario, std::ref(waitingQueue), std::ref(sistema_activo), modo_prueba); // agrega en el vector el hilo std::thread t1(productor_operario, i, std::ref(waitingQueue), std::ref(sistema_activo))
+        productores.emplace_back(productor_operario, std::ref(waitingQueue), std::ref(sistema_activo), modo_prueba, cantidadPaquetes);
     }
     for(int i =0; i < cantidadConsumidores; i++){
         consumidores.emplace_back(consumir_paquete, std::ref(processingQueue));

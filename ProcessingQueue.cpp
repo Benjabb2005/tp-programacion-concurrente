@@ -31,7 +31,8 @@ std::mutex mtx_metricas;
     auto tiempo_minimo = std::chrono::milliseconds(550);
 
     if (tiempo_pasado < tiempo_minimo) {
-        cola.cv_consumidores.wait_for(lock, tiempo_minimo - tiempo_pasado);
+        lock.unlock();
+        std::this_thread::sleep_for(tiempo_minimo - tiempo_pasado);
         continue;
     }
 

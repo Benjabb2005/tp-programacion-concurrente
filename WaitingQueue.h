@@ -27,7 +27,7 @@ struct WaitingQueue {
 };
 
 // Función que ejecuta cada hilo
-void productor_operario(WaitingQueue& waiting_queue, bool& sistema_activo, int modo_prueba);
-
+// Función que ejecuta cada hilo
+void productor_operario(WaitingQueue& waiting_queue, bool& sistema_activo, int modo_prueba, int cantidadPaquetes);
 
 #endif // WAITINGQUEUE_H_INCLUDED

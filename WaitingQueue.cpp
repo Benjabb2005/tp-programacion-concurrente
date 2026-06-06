@@ -54,7 +54,6 @@ Paquete WaitingQueue::extraer_paquete() {
         estanteria_baja.pop();
     }
 
-    mtx.unlock();
 
 
     return p;
@@ -66,8 +65,19 @@ bool WaitingQueue::esta_vacia() {
     return vacia;
 }
 
-void productor_operario(WaitingQueue& waiting_queue, bool& sistema_activo, int modo_prueba) {
+void productor_operario(WaitingQueue& waiting_queue, bool& sistema_activo, int modo_prueba, int cantidadPaquetes) {
     while (sistema_activo) { //Si esta activo
+
+        mtx_contador_global.lock();
+        if (contador_global_paquetes_generados >= cantidadPaquetes) {
+            mtx_contador_global.unlock();
+            break; // Si ya se hicieron todos termina
+        }
+        // Si hay lugar suma 1 al contador
+        contador_global_paquetes_generados++;
+        mtx_contador_global.unlock();
+
+
         Paquete p;//creamos el paquete
 
         mtx_generador_ids.lock();
@@ -93,14 +103,9 @@ void productor_operario(WaitingQueue& waiting_queue, bool& sistema_activo, int m
         p.fecha_de_creacion = std::chrono::steady_clock::now();
 
         std::this_thread::sleep_for(std::chrono::milliseconds(90));
-        
-        //Verifica si el sistema esta activo antes de insertar el paquete
-        if (!sistema_activo) break;
-        
+
+
         waiting_queue.insertar_paquete(p);
 
-        mtx_contador_global.lock();
-        contador_global_paquetes_generados++;
-        mtx_contador_global.unlock();
     }
 }
