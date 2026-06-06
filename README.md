@@ -17,10 +17,10 @@ El sistema gestión logística desarrollado tiene por objetivo gestionar y sincr
   - La Processing Queue sólo acepta un paquete por vez, debe existir un retardo simulado de 420ms entre asignaciones.
   - No es posible retirar más de un paquete de la Processing Queue simultáneamente. Debe existir un retardo de 270ms entre cada liberación.
   - La producción de paquetes no tiene retardo pero el ingreso de nuevas peticiones a la Waiting Queue es de 90ms.
-* **Capacidad y latencia de cómputo: **
+* **Capacidad y latencia de cómputo:**
   - La ProccesingQueue no puede contener más de 5 paquetes activos.
   - Un paquete debe permanecer en la Processing Queue un mínimo de 550ms antes de que un worker pueda finalizarlo.
-* **Alcance de contenidos: ** Los contenidos a utilizar están limitados a los que fueron vistos en la cursada, no se permite el uso de librería opimitivas de sincronización no abordadas.
+* **Alcance de contenidos:** Los contenidos a utilizar están limitados a los que fueron vistos en la cursada, no se permite el uso de librería opimitivas de sincronización no abordadas.
 
 ---
 
@@ -28,7 +28,7 @@ El sistema gestión logística desarrollado tiene por objetivo gestionar y sincr
 
 Para poder abrir y compilar este proyecto se necesita:
 * **Code::Blocks IDE** (Se recomienda la versión que viene con el compilador **MinGW / GNU GCC** integrado).
-* **Standar Language ** -std=c++11
+* **Standar Language** -std=c++11
 
 ---
 
